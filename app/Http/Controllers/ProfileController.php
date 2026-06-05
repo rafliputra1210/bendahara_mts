@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User; // Tambahkan import Model User
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,7 +51,8 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        $user->delete();
+        // Gunakan destroy() agar Intelephense tidak error
+        User::destroy($user->id);
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
