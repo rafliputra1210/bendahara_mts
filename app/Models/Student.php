@@ -16,4 +16,10 @@ class Student extends Model
     {
         return $this->hasMany(Income::class);
     }
+
+    // Relasi: Satu siswa bisa memiliki banyak tagihan
+    public function tagihans(): HasMany
+    {
+        return $this->hasMany(Tagihan::class);
+    }
 }

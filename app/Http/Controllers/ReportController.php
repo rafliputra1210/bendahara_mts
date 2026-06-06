@@ -42,12 +42,16 @@ class ReportController extends Controller
         return Excel::download(new LaporanKeuanganExport($startDate, $endDate), 'Laporan_Keuangan_' . $startDate . '_sd_' . $endDate . '.xlsx');
     }
 
-    // Fungsi bantuan untuk mengambil dan menggabungkan data
-    // 1. Tambahkan tipe data string pada parameter
     private function getTransactions(string $startDate, string $endDate)
     {
+        $activeYear = \App\Models\AcademicYear::getActive();
+        $yearId = $activeYear ? $activeYear->id : null;
+
         // 2. Tambahkan query() dan lengkapi parameter whereBetween
         $incomes = Income::query()->with('student')
+            ->when($yearId, function($q) use ($yearId) {
+                return $q->where('academic_year_id', $yearId);
+            })
             ->whereBetween('tanggal', [$startDate, $endDate], 'and', false)
             ->get()
             ->map(function ($item) {
@@ -58,6 +62,9 @@ class ReportController extends Controller
 
         // 3. Tambahkan query() dan lengkapi parameter whereBetween
         $expenses = Expense::query()
+            ->when($yearId, function($q) use ($yearId) {
+                return $q->where('academic_year_id', $yearId);
+            })
             ->whereBetween('tanggal', [$startDate, $endDate], 'and', false)
             ->get()
             ->map(function ($item) {

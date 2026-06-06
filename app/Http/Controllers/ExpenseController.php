@@ -10,8 +10,12 @@ class ExpenseController extends Controller
 {
     public function index()
     {
-        // Tambahkan query() agar VS Code mengenali method latest()
-        $expenses = Expense::query()->latest('tanggal')->paginate(10);
+        $activeYear = \App\Models\AcademicYear::getActive();
+        $query = Expense::query();
+        if ($activeYear) {
+            $query->where('academic_year_id', $activeYear->id);
+        }
+        $expenses = $query->latest('tanggal')->paginate(10);
         return view('expenses.index', compact('expenses'));
     }
 
@@ -34,7 +38,11 @@ class ExpenseController extends Controller
             $validated['bukti'] = $request->file('bukti')->store('bukti_pengeluaran', 'public');
         }
 
-        // Tambahkan query() agar VS Code mengenali method create()
+        $activeYear = \App\Models\AcademicYear::getActive();
+        if ($activeYear) {
+            $validated['academic_year_id'] = $activeYear->id;
+        }
+
         Expense::query()->create($validated);
 
         return redirect()->route('expenses.index')->with('success', 'Data pengeluaran berhasil dicatat!');

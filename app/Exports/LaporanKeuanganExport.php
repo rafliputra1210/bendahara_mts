@@ -21,7 +21,13 @@ class LaporanKeuanganExport implements FromView, ShouldAutoSize
 
     public function view(): View
     {
+        $activeYear = \App\Models\AcademicYear::getActive();
+        $yearId = $activeYear ? $activeYear->id : null;
+
         $incomes = Income::query()->with('student')
+            ->when($yearId, function($q) use ($yearId) {
+                return $q->where('academic_year_id', $yearId);
+            })
             // Tambahkan parameter 'and' dan false agar Intelephense tidak error
             ->whereBetween('tanggal', [$this->startDate, $this->endDate], 'and', false)
             ->get()
@@ -32,6 +38,9 @@ class LaporanKeuanganExport implements FromView, ShouldAutoSize
             });
 
         $expenses = Expense::query()
+            ->when($yearId, function($q) use ($yearId) {
+                return $q->where('academic_year_id', $yearId);
+            })
             // Tambahkan parameter 'and' dan false di sini juga
             ->whereBetween('tanggal', [$this->startDate, $this->endDate], 'and', false)
             ->get()
