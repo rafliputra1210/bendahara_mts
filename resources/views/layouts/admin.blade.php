@@ -83,6 +83,38 @@
         @supports (padding-bottom: env(safe-area-inset-bottom)) {
             .main-content { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
         }
+
+        /* Select2 Tailwind Fixes */
+        .select2-container .select2-selection--single {
+            height: 42px !important;
+            border-color: #e5e7eb !important;
+            border-radius: 0.75rem !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #374151 !important;
+            font-size: 0.875rem !important;
+            padding-left: 1rem !important;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            padding: 0.5rem 0.75rem !important;
+            outline: none !important;
+            font-size: 0.875rem !important;
+            margin-bottom: 4px;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #10b981 !important;
+        }
     </style>
 </head>
 <body class="font-sans antialiased bg-gray-50 text-gray-900">

@@ -10,8 +10,8 @@ class StudentsImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
-        // Abaikan baris jika 'nis' kosong atau 'nis' sudah ada di database
-        if (!isset($row['nis']) || Student::where('nis', $row['nis'])->exists()) {
+        // Tambahkan query() agar VS Code mengenali method where()
+        if (!isset($row['nis']) || Student::query()->where('nis', $row['nis'])->exists()) {
             return null;
         }
 

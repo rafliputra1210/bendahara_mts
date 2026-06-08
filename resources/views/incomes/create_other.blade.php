@@ -31,23 +31,19 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Jenis/Sumber Pemasukan <span class="text-red-500">*</span></label>
-                <select name="jenis_pembayaran" class="w-full border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-sm py-2.5" required>
-                    <option value="Bantuan Operasional">Bantuan Operasional</option>
-                    <option value="Pemindahan Buku">Pemindahan Buku</option>
-                    <option value="Donasi / Hibah">Donasi / Hibah</option>
-                    <option value="Sponsorship">Sponsorship</option>
-                    <option value="Dana BOS">Dana BOS</option>
-                    <option value="Lainnya">Lainnya</option>
-                </select>
+                <input type="text" name="jenis_pembayaran" 
+                       class="w-full border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-sm py-2.5 px-3" 
+                       placeholder="Misal: Bantuan Operasional, Donasi, dll" required>
             </div>
             
             <div class="sm:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Nominal (Rp) <span class="text-red-500">*</span></label>
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-500 font-bold text-sm">Rp</span>
-                    <input type="number" name="nominal" 
+                    <input type="text" id="nominal_visible" 
                            class="w-full pl-10 border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 font-bold text-lg text-emerald-700 py-2.5" 
-                           placeholder="0" min="0" required>
+                           placeholder="0" required oninput="formatRupiah(this, 'nominal_hidden')">
+                    <input type="hidden" name="nominal" id="nominal_hidden">
                 </div>
             </div>
         </div>
@@ -99,5 +95,27 @@
             label.classList.remove('text-gray-800', 'font-medium');
         }
     });
+
+    function formatRupiahValue(value) {
+        if (value === undefined || value === null) return '';
+        let number_string = value.toString().replace(/[^0-9]/g, '');
+        let sisa = number_string.length % 3;
+        let rupiah = number_string.substr(0, sisa);
+        let ribuan = number_string.substr(sisa).match(/\d{3}/g);
+        
+        if (ribuan) {
+            let separator = sisa ? '.' : '';
+            rupiah += separator + ribuan.join('.');
+        }
+        return rupiah;
+    }
+
+    function formatRupiah(element, hiddenId) {
+        let cleanValue = element.value.replace(/[^0-9]/g, '');
+        element.value = formatRupiahValue(cleanValue);
+        if(hiddenId) {
+            document.getElementById(hiddenId).value = cleanValue;
+        }
+    }
 </script>
 @endsection

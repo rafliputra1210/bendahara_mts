@@ -65,16 +65,10 @@ class IncomeController extends Controller
     {
         $validated = $request->validate([
             'kelas' => 'required|string',
-            'nama_1' => 'required|string',
-            'nominal_1' => 'required|numeric|min:0',
-            'nama_2' => 'required|string',
-            'nominal_2' => 'required|numeric|min:0',
-            'nama_3' => 'required|string',
-            'nominal_3' => 'required|numeric|min:0',
-            'nama_4' => 'required|string',
-            'nominal_4' => 'required|numeric|min:0',
-            'nama_5' => 'required|string',
-            'nominal_5' => 'required|numeric|min:0',
+            'nama' => 'required|array',
+            'nama.*' => 'required|string',
+            'nominal' => 'required|array',
+            'nominal.*' => 'required|numeric|min:0',
         ]);
 
         $activeYear = \App\Models\AcademicYear::getActive();
@@ -88,32 +82,52 @@ class IncomeController extends Controller
             return redirect()->back()->with('error', 'Tidak ada siswa di kelas ' . $request->kelas);
         }
 
+        // Ambil data nama dan nominal
+        $namas = $request->input('nama');
+        $nominals = $request->input('nominal');
+        $count = count($namas);
+
+        // Hapus target kelas yang urutannya melebihi jumlah target baru
+        \App\Models\ClassTarget::where('academic_year_id', $activeYear->id)
+            ->where('kelas', $request->kelas)
+            ->where('urutan', '>', $count)
+            ->delete();
+
         // Simpan konfigurasi kelas ke DB ClassTarget
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 0; $i < $count; $i++) {
+            $urutan = $i + 1;
             \App\Models\ClassTarget::updateOrCreate(
                 [
                     'academic_year_id' => $activeYear->id,
                     'kelas' => $request->kelas,
-                    'urutan' => $i
+                    'urutan' => $urutan
                 ],
                 [
-                    'nama_tagihan' => $request->input('nama_' . $i),
-                    'nominal' => (float)$request->input('nominal_' . $i)
+                    'nama_tagihan' => $namas[$i],
+                    'nominal' => (float)$nominals[$i]
                 ]
             );
         }
 
         // Buat atau perbarui tagihan untuk semua siswa di kelas ini pada tahun ajaran aktif
         foreach ($students as $student) {
-            for ($i = 1; $i <= 5; $i++) {
-                $nama_tagihan = $request->input('nama_' . $i);
-                $nominal = $request->input('nominal_' . $i);
+            // Hapus tagihan yang urutannya lebih dari jumlah target, hanya jika belum ada pembayaran
+            Tagihan::where('academic_year_id', $activeYear->id)
+                ->where('student_id', $student->id)
+                ->where('urutan', '>', $count)
+                ->where('total_dibayar', 0)
+                ->delete();
+
+            for ($i = 0; $i < $count; $i++) {
+                $urutan = $i + 1;
+                $nama_tagihan = $namas[$i];
+                $nominal = $nominals[$i];
 
                 $tagihan = Tagihan::query()->updateOrCreate(
                     [
                         'academic_year_id' => $activeYear->id,
                         'student_id' => $student->id,
-                        'urutan' => $i,
+                        'urutan' => $urutan,
                     ],
                     [
                         'nama_tagihan' => $nama_tagihan,

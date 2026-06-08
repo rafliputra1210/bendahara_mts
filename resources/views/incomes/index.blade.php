@@ -82,28 +82,14 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Pilih Tagihan / Cicilan <span class="text-red-500">*</span></label>
-                    <select name="tagihan_id" id="tagihan_id" 
-                            class="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-sm py-2.5" required disabled>
-                        <option value="">-- Pilih Siswa Terlebih Dahulu --</option>
-                    </select>
-                    <p id="info_tagihan" class="text-xs text-emerald-600 font-medium mt-1 hidden"></p>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Kategori Pembayaran <span class="text-red-500">*</span></label>
-                    <select name="jenis_pembayaran" id="jenis_pembayaran" 
-                            class="w-full border-gray-200 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-sm py-2.5" required>
-                        <option value="Kas Bulanan">Kas Bulanan</option>
-                        <option value="SPP">SPP</option>
-                        <option value="Uang Gedung">Uang Gedung</option>
-                        <option value="Daftar Ulang">Daftar Ulang</option>
-                        <option value="Infaq">Infaq</option>
-                        <option value="Lainnya">Lainnya</option>
-                    </select>
-                </div>
+            <div class="mb-3 sm:mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Pilih Jenis Pembayaran <span class="text-red-500">*</span></label>
+                <select name="tagihan_id" id="tagihan_id" 
+                        class="w-full border-gray-200 bg-gray-50 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-sm py-2.5" required disabled>
+                    <option value="">-- Pilih Siswa Terlebih Dahulu --</option>
+                </select>
+                <input type="hidden" name="jenis_pembayaran" id="jenis_pembayaran">
+                <p id="info_tagihan" class="text-xs text-emerald-600 font-medium mt-1 hidden"></p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
@@ -111,9 +97,10 @@
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nominal Pembayaran (Rp) <span class="text-red-500">*</span></label>
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-500 font-bold text-sm">Rp</span>
-                        <input type="number" name="nominal" id="nominal" 
+                        <input type="text" id="nominal_visible" 
                                class="w-full pl-10 pr-4 py-2.5 border-gray-200 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 font-bold text-lg text-emerald-700" 
-                               placeholder="0" min="0" required>
+                               placeholder="0" required oninput="formatRupiah(this, 'nominal_hidden')">
+                        <input type="hidden" name="nominal" id="nominal_hidden">
                     </div>
                 </div>
                 <div>
@@ -189,18 +176,8 @@
                     <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500 pl-4 sm:pl-6">Nama</th>
                     <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500">Kelas</th>
                     
-                    <!-- Header Dinamis Kolom 1-5 -->
-                    @for ($i = 1; $i <= 5; $i++)
-                        <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-center">
-                            @if($selectedClass && isset($classTargets[$selectedClass][$i]))
-                                <span class="truncate block max-w-[90px] sm:max-w-[120px] mx-auto" title="{{ $classTargets[$selectedClass][$i]['name'] }}">
-                                    {{ $classTargets[$selectedClass][$i]['name'] }}
-                                </span>
-                            @else
-                                Kat. {{ $i }}
-                            @endif
-                        </th>
-                    @endfor
+                    <!-- Header Dinamis Kolom Rincian Tagihan -->
+                    <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-left">Rincian Tagihan</th>
                     <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-right">Total</th>
                     <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-right">Sisa</th>
                     <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-center pr-4 sm:pr-6">Status</th>
@@ -209,73 +186,63 @@
             <tbody class="divide-y divide-gray-100">
                 @forelse ($students as $siswa)
                     @php
-                        $siswaTagihans = $siswa->tagihans->keyBy('urutan');
+                        $siswaTagihans = $siswa->tagihans->sortBy('urutan');
                         $lunasCount = 0;
-                        $totalInstallments = 5;
-                        $totalTagihanSiswa = 0;
-                        $totalDibayarSiswa = 0;
-                        for($i=1; $i<=5; $i++) {
-                            $tagihan = $siswaTagihans->get($i);
-                            if($tagihan) {
-                                $totalTagihanSiswa += $tagihan->total_tagihan;
-                                $totalDibayarSiswa += $tagihan->total_dibayar;
-                            }
-                        }
+                        $totalInstallments = $siswaTagihans->count();
+                        $totalTagihanSiswa = $siswaTagihans->sum('total_tagihan');
+                        $totalDibayarSiswa = $siswaTagihans->sum('total_dibayar');
                         $sisaSiswa = $totalTagihanSiswa - $totalDibayarSiswa;
                     @endphp
                     <tr class="hover:bg-gray-50/80 transition duration-150">
-                        <td class="p-3 sm:p-4 pl-4 sm:pl-6">
+                        <td class="p-3 sm:p-4 pl-4 sm:pl-6 align-top">
                             <div class="font-semibold text-gray-900 text-sm leading-tight">{{ $siswa->nama }}</div>
                             <div class="text-[10px] text-gray-400 mt-0.5">NIS: {{ $siswa->nis }}</div>
                         </td>
-                        <td class="p-3 sm:p-4 text-sm text-gray-600 font-medium">
+                        <td class="p-3 sm:p-4 text-sm text-gray-600 font-medium align-top">
                             <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-lg text-xs">{{ $siswa->kelas }}</span>
                         </td>
                         
-                        @for ($i = 1; $i <= 5; $i++)
-                            @php
-                                $tagihan = $siswaTagihans->get($i);
-                                $configuredTarget = $classTargets[$siswa->kelas][$i] ?? null;
-                            @endphp
-                            <td class="p-2 sm:p-3 text-center">
-                                @if($tagihan)
+                        <td class="p-2 sm:p-3">
+                            <div class="flex flex-wrap gap-2 items-center">
+                                @forelse ($siswaTagihans as $tagihan)
                                     @php
                                         $sisa = $tagihan->total_tagihan - $tagihan->total_dibayar;
                                     @endphp
                                     @if ($tagihan->status == 'lunas')
                                         @php $lunasCount++; @endphp
                                         <button type="button" 
-                                            class="w-full max-w-[120px] sm:max-w-[130px] mx-auto py-1.5 sm:py-2 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl flex flex-col items-center gap-0.5 transition cursor-not-allowed"
+                                            class="w-[110px] sm:w-[120px] py-1.5 sm:py-2 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl flex flex-col items-center gap-0.5 transition cursor-not-allowed shrink-0"
                                             title="{{ $tagihan->nama_tagihan }} - Sudah Lunas" disabled>
                                             <span class="text-xs sm:text-sm font-black tracking-tight">{{ number_format($tagihan->total_dibayar, 0, ',', '.') }}</span>
-                                            <span class="truncate w-full text-[9px] font-bold uppercase">{{ $tagihan->nama_tagihan }}</span>
+                                            <span class="truncate w-full text-[9px] font-bold uppercase text-center">{{ $tagihan->nama_tagihan }}</span>
                                         </button>
                                     @elseif ($tagihan->status == 'mencicil')
                                         <button type="button" 
                                             onclick="triggerQuickPayment({{ $siswa->id }}, {{ $tagihan->id }}, {{ $sisa }}, '{{ $tagihan->nama_tagihan }}')"
-                                            class="w-full max-w-[120px] sm:max-w-[130px] mx-auto py-1.5 sm:py-2 px-2 bg-amber-50 hover:bg-amber-100 hover:border-amber-300 text-amber-700 border border-amber-200 rounded-xl flex flex-col items-center gap-0.5 transition cursor-pointer"
+                                            class="w-[110px] sm:w-[120px] py-1.5 sm:py-2 px-2 bg-amber-50 hover:bg-amber-100 hover:border-amber-300 text-amber-700 border border-amber-200 rounded-xl flex flex-col items-center gap-0.5 transition cursor-pointer shrink-0"
                                             title="Bayar Sisa {{ $tagihan->nama_tagihan }}">
                                             <span class="text-xs sm:text-sm font-black tracking-tight">Sisa {{ number_format($sisa, 0, ',', '.') }}</span>
-                                            <span class="truncate w-full text-[9px] font-bold uppercase">{{ $tagihan->nama_tagihan }}</span>
+                                            <span class="truncate w-full text-[9px] font-bold uppercase text-center">{{ $tagihan->nama_tagihan }}</span>
                                         </button>
                                     @else
                                         <button type="button" 
                                             onclick="triggerQuickPayment({{ $siswa->id }}, {{ $tagihan->id }}, {{ $tagihan->total_tagihan }}, '{{ $tagihan->nama_tagihan }}')"
-                                            class="w-full max-w-[120px] sm:max-w-[130px] mx-auto py-1.5 sm:py-2 px-2 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 text-gray-500 border border-gray-200 rounded-xl flex flex-col items-center gap-0.5 transition cursor-pointer"
+                                            class="w-[110px] sm:w-[120px] py-1.5 sm:py-2 px-2 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 text-gray-500 border border-gray-200 rounded-xl flex flex-col items-center gap-0.5 transition cursor-pointer shrink-0"
                                             title="Belum Bayar {{ $tagihan->nama_tagihan }}">
                                             <span class="text-xs sm:text-sm font-black tracking-tight">{{ number_format($tagihan->total_tagihan, 0, ',', '.') }}</span>
-                                            <span class="truncate w-full text-[9px] font-bold uppercase">{{ $tagihan->nama_tagihan }}</span>
+                                            <span class="truncate w-full text-[9px] font-bold uppercase text-center">{{ $tagihan->nama_tagihan }}</span>
                                         </button>
                                     @endif
-                                @else
+                                @empty
                                     <button type="button" 
-                                        class="w-full max-w-[120px] sm:max-w-[130px] mx-auto py-1.5 sm:py-2 px-2 bg-gray-50/50 text-gray-300 border border-gray-200 border-dashed rounded-xl text-[10px] font-medium cursor-not-allowed"
+                                        class="w-[110px] sm:w-[120px] py-1.5 sm:py-2 px-2 bg-gray-50/50 text-gray-300 border border-gray-200 border-dashed rounded-xl text-[10px] font-medium cursor-not-allowed shrink-0"
                                         title="Target Pembayaran Belum Diatur" disabled>
                                         Belum Diatur
                                     </button>
-                                @endif
-                            </td>
-                        @endfor
+                                @endforelse
+                            </div>
+                        </td>
+
 
                         <td class="p-3 sm:p-4 text-right">
                             <span class="text-sm font-black text-emerald-600 block">{{ number_format($totalDibayarSiswa, 0, ',', '.') }}</span>
@@ -288,7 +255,7 @@
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
                                     Lunas ✓
                                 </span>
-                            @elseif ($siswa->tagihans->where('total_dibayar', '>', 0)->isNotEmpty())
+                            @elseif ($siswa->tagihans->where('total_dibayar', '>', 0)->isNotEmpty() && $totalInstallments > 0)
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
                                     {{ $lunasCount }}/{{ $totalInstallments }}
                                 </span>
@@ -345,29 +312,20 @@
                         <option value="{{ $kelas }}">Kelas {{ $kelas }}</option>
                     @endforeach
                 </select>
-                <p class="text-xs text-gray-400 mt-1">Sesuaikan jenis pembayaran & nominal target per slot (1-5).</p>
+                <p class="text-xs text-gray-400 mt-1">Sesuaikan jenis pembayaran & nominal target tanpa batasan jumlah.</p>
             </div>
 
-            <div class="space-y-2.5 bg-gray-50 p-3 sm:p-4 rounded-2xl border border-gray-100" id="nominal_container">
-                <div class="grid grid-cols-12 gap-2 sm:gap-3 text-left mb-1">
-                    <div class="col-span-6 text-[10px] font-bold uppercase text-gray-400">Jenis Pembayaran</div>
-                    <div class="col-span-6 text-[10px] font-bold uppercase text-gray-400">Target Nominal</div>
-                </div>
-                @for ($i = 1; $i <= 5; $i++)
-                <div class="grid grid-cols-12 gap-2 sm:gap-3 items-center">
-                    <div class="col-span-6">
-                        <input type="text" name="nama_{{ $i }}" id="target_nama_{{$i}}" 
-                               class="w-full px-3 py-2 border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:ring-blue-500 focus:border-blue-500" 
-                               placeholder="Contoh: Buku Paket, dll" required>
-                    </div>
-                    <div class="col-span-6 relative">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm font-bold">Rp</span>
-                        <input type="number" name="nominal_{{ $i }}" id="target_nominal_{{$i}}" 
-                               class="w-full pl-9 pr-3 py-2 border-gray-200 rounded-lg text-sm text-gray-700 font-semibold focus:ring-blue-500 focus:border-blue-500" 
-                               value="0" min="0" required>
+            <div class="space-y-2.5 bg-gray-50 p-3 sm:p-4 rounded-2xl border border-gray-100">
+                <div class="grid grid-cols-12 gap-2 sm:gap-3 text-left mb-1 items-center">
+                    <div class="col-span-5 text-[10px] font-bold uppercase text-gray-400">Jenis Pembayaran</div>
+                    <div class="col-span-5 text-[10px] font-bold uppercase text-gray-400">Target Nominal</div>
+                    <div class="col-span-2 text-right">
+                        <button type="button" onclick="addPaymentRow()" class="text-xs text-blue-600 font-bold hover:text-blue-700 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">+ Tambah</button>
                     </div>
                 </div>
-                @endfor
+                <div id="nominal_container" class="space-y-2.5">
+                    <!-- Baris input akan dimuat secara dinamis dengan JS -->
+                </div>
             </div>
 
             <div class="pt-2">
@@ -615,6 +573,55 @@
 <script>
     const classTargets = @json($classTargets);
 
+    function formatRupiahValue(value) {
+        if (value === undefined || value === null) return '';
+        let number_string = value.toString().replace(/[^0-9]/g, '');
+        let sisa = number_string.length % 3;
+        let rupiah = number_string.substr(0, sisa);
+        let ribuan = number_string.substr(sisa).match(/\d{3}/g);
+        
+        if (ribuan) {
+            let separator = sisa ? '.' : '';
+            rupiah += separator + ribuan.join('.');
+        }
+        return rupiah;
+    }
+
+    function formatRupiah(element, hiddenId) {
+        let cleanValue = element.value.replace(/[^0-9]/g, '');
+        element.value = formatRupiahValue(cleanValue);
+        if(hiddenId) {
+            document.getElementById(hiddenId).value = cleanValue;
+        }
+    }
+
+    function addPaymentRow(name = '', nominal = 0) {
+        const container = document.getElementById('nominal_container');
+        const row = document.createElement('div');
+        const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
+        row.className = 'grid grid-cols-12 gap-2 sm:gap-3 items-center mt-2';
+        row.innerHTML = `
+            <div class="col-span-5">
+                <input type="text" name="nama[]" 
+                       class="w-full px-3 py-2 border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:ring-blue-500 focus:border-blue-500" 
+                       placeholder="Contoh: Buku Paket, dll" value="${name}" required>
+            </div>
+            <div class="col-span-6 relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm font-bold">Rp</span>
+                <input type="text" id="target_nominal_visible_${uniqueId}"
+                       class="w-full pl-9 pr-3 py-2 border-gray-200 rounded-lg text-sm text-gray-700 font-semibold focus:ring-blue-500 focus:border-blue-500" 
+                       value="${formatRupiahValue(nominal)}" required oninput="formatRupiah(this, 'target_nominal_hidden_${uniqueId}')">
+                <input type="hidden" name="nominal[]" id="target_nominal_hidden_${uniqueId}" value="${nominal}">
+            </div>
+            <div class="col-span-1 text-right">
+                <button type="button" onclick="this.parentElement.parentElement.remove()" class="text-red-500 hover:text-red-700 p-2" title="Hapus baris">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const studentSelect = document.getElementById('student_id');
         const tagihanSelect = document.getElementById('tagihan_id');
@@ -646,26 +653,21 @@
 
         settingKelas.addEventListener('change', function() {
             const selectedClass = this.value;
+            const container = document.getElementById('nominal_container');
+            container.innerHTML = ''; // bersihkan baris sebelumnya
+            
             if(selectedClass && classTargets[selectedClass]) {
                 const targets = classTargets[selectedClass];
-                for(let i = 1; i <= 5; i++) {
-                    const nameInput = document.getElementById('target_nama_' + i);
-                    const nominalInput = document.getElementById('target_nominal_' + i);
-                    if(targets[i]) {
-                        if(nameInput) nameInput.value = targets[i].name || '';
-                        if(nominalInput) nominalInput.value = targets[i].nominal || 0;
-                    } else {
-                        if(nameInput) nameInput.value = 'Cicilan ' + i;
-                        if(nominalInput) nominalInput.value = 0;
-                    }
+                const targetValues = Object.values(targets);
+                if (targetValues.length > 0) {
+                    targetValues.forEach(target => {
+                        addPaymentRow(target.name || '', target.nominal || 0);
+                    });
+                } else {
+                    addPaymentRow();
                 }
             } else {
-                for(let i = 1; i <= 5; i++) {
-                    const nameInput = document.getElementById('target_nama_' + i);
-                    const nominalInput = document.getElementById('target_nominal_' + i);
-                    if(nameInput) nameInput.value = '';
-                    if(nominalInput) nominalInput.value = 0;
-                }
+                addPaymentRow();
             }
         });
 
@@ -724,20 +726,24 @@
                         const tagihan = data.find(t => t.id == selectedId);
                         if(tagihan) {
                             let sisa = tagihan.total_tagihan - tagihan.total_dibayar;
-                            nominalInput.value = sisa;
+                            
+                            const nominalVisible = document.getElementById('nominal_visible');
+                            const nominalHidden = document.getElementById('nominal_hidden');
+                            
+                            nominalHidden.value = sisa;
+                            nominalVisible.value = formatRupiahValue(sisa);
+                            
                             infoTagihan.innerHTML = `Total: Rp ${parseFloat(tagihan.total_tagihan).toLocaleString('id-ID')} | Sudah Dibayar: Rp ${parseFloat(tagihan.total_dibayar).toLocaleString('id-ID')}`;
                             infoTagihan.classList.remove('hidden');
 
-                            let optionExists = Array.from(jenisSelect.options).some(opt => opt.value === tagihan.nama_tagihan);
-                            if(!optionExists) {
-                                let newOpt = new Option(tagihan.nama_tagihan, tagihan.nama_tagihan);
-                                jenisSelect.add(newOpt);
-                            }
                             jenisSelect.value = tagihan.nama_tagihan;
                         }
                     });
             } else {
-                nominalInput.value = '';
+                const nominalVisible = document.getElementById('nominal_visible');
+                const nominalHidden = document.getElementById('nominal_hidden');
+                nominalVisible.value = '';
+                nominalHidden.value = '';
                 infoTagihan.classList.add('hidden');
             }
         });
@@ -746,7 +752,8 @@
     function triggerQuickPayment(studentId, tagihanId, remainingAmount, namaTagihan) {
         const studentSelect = document.getElementById('student_id');
         const tagihanSelect = document.getElementById('tagihan_id');
-        const nominalInput = document.getElementById('nominal');
+        const nominalVisible = document.getElementById('nominal_visible');
+        const nominalHidden = document.getElementById('nominal_hidden');
         const infoTagihan = document.getElementById('info_tagihan');
         const jenisSelect = document.getElementById('jenis_pembayaran');
 
@@ -774,13 +781,9 @@
                     tagihanSelect.appendChild(option);
                 });
 
-                nominalInput.value = remainingAmount;
+                nominalHidden.value = remainingAmount;
+                nominalVisible.value = formatRupiahValue(remainingAmount);
 
-                let optionExists = Array.from(jenisSelect.options).some(opt => opt.value === namaTagihan);
-                if(!optionExists) {
-                    let newOpt = new Option(namaTagihan, namaTagihan);
-                    jenisSelect.add(newOpt);
-                }
                 jenisSelect.value = namaTagihan;
 
                 // Scroll ke form dengan smooth
