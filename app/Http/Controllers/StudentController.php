@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Imports\StudentsImport; // <-- Tambahkan baris ini
+use App\Imports\StudentsImport;
 
 class StudentController extends Controller
 {
@@ -45,21 +48,23 @@ class StudentController extends Controller
             return redirect()->back()->with('error', 'Tidak ada siswa di kelas asal tersebut.');
         }
 
-        foreach ($students as $student) {
-            $student->kelas = $request->kelas_tujuan;
-            
-            // Jika Lulus, nonaktifkan (opsional)
-            if (strtolower(trim($request->kelas_tujuan)) === 'lulus') {
-                $student->status = 'tidak_aktif';
-            }
-            
-            $student->save();
+        DB::transaction(function () use ($students, $request) {
+            foreach ($students as $student) {
+                $student->kelas = $request->kelas_tujuan;
+                
+                // Jika Lulus, nonaktifkan (opsional)
+                if (strtolower(trim($request->kelas_tujuan)) === 'lulus') {
+                    $student->status = 'tidak_aktif';
+                }
+                
+                $student->save();
 
-            // Jika reset tagihan dicentang, hapus semua tagihan saat ini
-            if ($request->filled('reset_tagihan')) {
-                \App\Models\Tagihan::where('student_id', $student->id)->delete();
+                // Jika reset tagihan dicentang, hapus semua tagihan saat ini
+                if ($request->filled('reset_tagihan')) {
+                    \App\Models\Tagihan::where('student_id', $student->id)->delete();
+                }
             }
-        }
+        });
 
         return redirect()->back()->with('success', count($students) . ' siswa berhasil dipindah ke kelas ' . $request->kelas_tujuan . '.');
     }
@@ -71,7 +76,7 @@ class StudentController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nis' => 'required|unique:students,nis|max:20',
             'nama' => 'required|string|max:255',
             'kelas' => 'required|string|max:50',
@@ -83,9 +88,41 @@ class StudentController extends Controller
             'nis.unique' => 'NIS/NISN sudah terdaftar!',
         ]);
 
-        Student::query()->create($request->all());
+        DB::transaction(function () use ($validated) {
+            $student = Student::create($validated);
 
-        return redirect()->route('students.index')->with('success', 'Data siswa berhasil ditambahkan!');
+            User::updateOrCreate(
+                ['student_id' => $student->id],
+                [
+                    'name'       => $student->nama,
+                    'email'      => $student->nis . '@wali.com',
+                    'password'   => Hash::make($student->nis),
+                    'role'       => 'wali',
+                ]
+            );
+        });
+
+        return redirect()->route('students.index')->with('success', 'Siswa & Akun Wali berhasil dibuat!');
+    }
+
+    public function resetWaliPassword(Student $student)
+    {
+        $user = User::where('student_id', $student->id)->first();
+        if (!$user) {
+            User::create([
+                'student_id' => $student->id,
+                'name'       => $student->nama,
+                'email'      => $student->nis . '@wali.com',
+                'password'   => Hash::make($student->nis),
+                'role'       => 'wali',
+            ]);
+        } else {
+            $user->update([
+                'password' => Hash::make($student->nis)
+            ]);
+        }
+
+        return redirect()->back()->with('success', "Password wali untuk {$student->nama} berhasil direset ke NISN ({$student->nis})!");
     }
 
     public function edit(Student $student)
@@ -117,6 +154,13 @@ class StudentController extends Controller
         Student::destroy($student->id);
         
         return redirect()->route('students.index')->with('success', 'Data siswa berhasil dihapus!');
+    }
+
+    public function destroyAll()
+    {
+        Student::query()->delete();
+        
+        return redirect()->route('students.index')->with('success', 'Seluruh data siswa berhasil dihapus secara permanen!');
     }
     
     public function importExcel(Request $request)

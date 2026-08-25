@@ -9,10 +9,10 @@
 </div>
 
 {{-- Stats Cards --}}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
     
     {{-- Saldo Kas --}}
-    <div class="col-span-2 sm:col-span-1 bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100 border-l-4 border-l-blue-500 flex items-center justify-between hover:shadow-md transition">
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 border border-gray-100 border-l-4 border-l-blue-500 flex items-center justify-between hover:shadow-md transition">
         <div class="min-w-0">
             <p class="text-xs sm:text-sm font-semibold text-gray-500 mb-1">Total Saldo Kas</p>
             <h3 class="text-lg sm:text-2xl font-bold text-gray-800 truncate">Rp {{ number_format($saldoKas, 0, ',', '.') }}</h3>

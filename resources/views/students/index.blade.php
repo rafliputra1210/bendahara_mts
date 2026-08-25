@@ -40,6 +40,16 @@
             <span class="hidden sm:inline">Pindah Kelas Massal</span>
         </button>
 
+        <button type="button" onclick="confirmDeleteAll()"
+           class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-xl font-medium shadow-sm transition flex items-center justify-center gap-2 text-sm shrink-0">
+            <i class="fas fa-trash-alt"></i> 
+            <span class="hidden sm:inline">Hapus Semua</span>
+        </button>
+        <form id="delete-all-form" action="{{ route('students.destroy_all') }}" method="POST" class="hidden">
+            @csrf
+            @method('DELETE')
+        </form>
+
         <a href="{{ route('students.create') }}" 
            class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-medium shadow-sm transition flex items-center justify-center gap-2 text-sm shrink-0">
             <i class="fas fa-plus"></i> 
@@ -97,16 +107,23 @@
                         </span>
                     </td>
                     <td class="p-3 sm:p-4 text-sm text-center">
-                        <div class="flex items-center justify-center gap-2">
+                        <div class="flex items-center justify-center gap-1.5">
                             <a href="{{ route('students.edit', $siswa->id) }}" 
                                class="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition" title="Edit">
                                 <i class="fas fa-edit text-xs"></i>
                             </a>
+                            <button type="button" onclick="confirmResetPassword({{ $siswa->id }}, '{{ $siswa->nama }}')" 
+                                    class="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition" title="Reset Password Wali ke NISN">
+                                <i class="fas fa-key text-xs"></i>
+                            </button>
                             <button type="button" onclick="confirmDelete({{ $siswa->id }})" 
                                     class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition" title="Hapus">
                                 <i class="fas fa-trash text-xs"></i>
                             </button>
                         </div>
+                        <form id="reset-pw-form-{{ $siswa->id }}" action="{{ route('students.reset_wali_password', $siswa->id) }}" method="POST" class="hidden">
+                            @csrf
+                        </form>
                         <form id="delete-form-{{ $siswa->id }}" action="{{ route('students.destroy', $siswa->id) }}" method="POST" class="hidden">
                             @csrf
                             @method('DELETE')
@@ -155,11 +172,15 @@
                 </div>
                 <div class="flex flex-col items-center gap-1 shrink-0">
                     <a href="{{ route('students.edit', $siswa->id) }}" 
-                       class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition">
+                       class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit">
                         <i class="fas fa-edit text-sm"></i>
                     </a>
+                    <button type="button" onclick="confirmResetPassword({{ $siswa->id }}, '{{ $siswa->nama }}')" 
+                            class="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition" title="Reset Password">
+                        <i class="fas fa-key text-sm"></i>
+                    </button>
                     <button type="button" onclick="confirmDelete({{ $siswa->id }})"
-                            class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                            class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Hapus">
                         <i class="fas fa-trash text-sm"></i>
                     </button>
                 </div>
@@ -274,6 +295,24 @@
         });
     @endif
 
+    // Konfirmasi Reset Password Wali
+    function confirmResetPassword(id, nama) {
+        Swal.fire({
+            title: 'Reset Password Wali?',
+            text: 'Password akun wali untuk "' + nama + '" akan direset kembali ke NISN siswa.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Reset Password!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('reset-pw-form-' + id).submit();
+            }
+        });
+    }
+
     // Konfirmasi Hapus
     function confirmDelete(id) {
         Swal.fire({
@@ -288,6 +327,22 @@
         }).then((result) => {
             if (result.isConfirmed) {
                 document.getElementById('delete-form-' + id).submit();
+            }
+        })
+    }
+    function confirmDeleteAll() {
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: "SEMUA data siswa akan dihapus secara permanen beserta seluruh riwayat keuangannya! Tindakan ini tidak dapat dibatalkan!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, HAPUS SEMUA!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-all-form').submit();
             }
         })
     }

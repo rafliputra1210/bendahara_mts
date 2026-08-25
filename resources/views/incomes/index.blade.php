@@ -2,11 +2,9 @@
 @section('header_title', 'Kas Masuk')
 
 @section('content')
-<!-- html2pdf.js & html2canvas CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-<!-- Notifikasi SweetAlert jika ada status -->
 @if(session('success'))
 <script>
     Swal.fire({
@@ -47,7 +45,6 @@
     </div>
 </div>
 
-<!-- Input Pembayaran Kas -->
 <div class="mb-6 sm:mb-8">
     <div class="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition hover:shadow-md">
         <div class="p-4 sm:p-5 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-white">
@@ -127,9 +124,7 @@
     </div>
 </div>
 
-<!-- Bagian Bawah: Tabel Status Pembayaran Siswa -->
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    
     {{-- Header tabel --}}
     <div class="p-4 sm:p-6 border-b border-gray-100">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -175,8 +170,6 @@
                 <tr class="bg-gray-50/80 border-b border-gray-150">
                     <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500 pl-4 sm:pl-6">Nama</th>
                     <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500">Kelas</th>
-                    
-                    <!-- Header Dinamis Kolom Rincian Tagihan -->
                     <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-left">Rincian Tagihan</th>
                     <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-right">Total</th>
                     <th class="p-3 sm:p-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-right">Sisa</th>
@@ -243,7 +236,6 @@
                             </div>
                         </td>
 
-
                         <td class="p-3 sm:p-4 text-right">
                             <span class="text-sm font-black text-emerald-600 block">{{ number_format($totalDibayarSiswa, 0, ',', '.') }}</span>
                         </td>
@@ -251,7 +243,7 @@
                             <span class="text-sm font-black text-amber-600 block">{{ number_format($sisaSiswa, 0, ',', '.') }}</span>
                         </td>
                         <td class="p-3 sm:p-4 text-center pr-4 sm:pr-6">
-                            @if ($lunasCount == $totalInstallments)
+                            @if ($lunasCount == $totalInstallments && $totalInstallments > 0)
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
                                     Lunas ✓
                                 </span>
@@ -268,7 +260,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="p-10 text-center text-gray-400">
+                        <td colspan="6" class="p-10 text-center text-gray-400">
                             <i class="fas fa-users text-4xl mb-3 block opacity-20"></i>
                             <p class="font-medium">Belum ada data siswa. Silakan pilih kelas lain atau tambahkan siswa.</p>
                         </td>
@@ -279,8 +271,6 @@
     </div>
 </div>
 
-<!-- Modal settings dihapus dari sini atau dibiarkan -->
-
 <script>
     function openSettingsModal() {
         document.getElementById('settingsModal').classList.remove('hidden');
@@ -290,7 +280,6 @@
     }
 </script>
 
-<!-- MODAL PENGATURAN TARGET -->
 <div id="settingsModal" class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto hidden">
     <div class="relative bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden my-auto">
         <div class="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gray-50">
@@ -316,16 +305,12 @@
             </div>
 
             <div class="space-y-2.5 bg-gray-50 p-3 sm:p-4 rounded-2xl border border-gray-100">
-                <div class="grid grid-cols-12 gap-2 sm:gap-3 text-left mb-1 items-center">
-                    <div class="col-span-5 text-[10px] font-bold uppercase text-gray-400">Jenis Pembayaran</div>
-                    <div class="col-span-5 text-[10px] font-bold uppercase text-gray-400">Target Nominal</div>
-                    <div class="col-span-2 text-right">
-                        <button type="button" onclick="addPaymentRow()" class="text-xs text-blue-600 font-bold hover:text-blue-700 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">+ Tambah</button>
-                    </div>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-[10px] font-bold uppercase text-gray-400">Daftar Tagihan</div>
+                    <button type="button" onclick="addPaymentRow()" class="text-xs text-blue-600 font-bold hover:text-blue-700 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">+ Tambah</button>
                 </div>
                 <div id="nominal_container" class="space-y-2.5">
-                    <!-- Baris input akan dimuat secara dinamis dengan JS -->
-                </div>
+                    </div>
             </div>
 
             <div class="pt-2">
@@ -338,12 +323,10 @@
     </div>
 </div>
 
-<!-- MODAL KUITANSI PEMBAYARAN KAS -->
 @if($receipt)
-<div id="receiptModal" class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+<div id="receiptModal" class="fixed inset-0 z-[60] flex items-start sm:items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
     <div class="relative bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden my-auto">
         
-        <!-- Header Modal -->
         <div class="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gray-50">
             <h4 class="font-bold text-gray-800 text-sm sm:text-base">Kuitansi Pembayaran Digital</h4>
             <button onclick="closeReceiptModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none p-1.5 bg-white rounded-full border border-gray-200">
@@ -352,16 +335,14 @@
         </div>
 
         <div class="p-4 sm:p-6">
-            <!-- Tampilan Kuitansi -->
             <div id="receipt_card" class="bg-white p-4 sm:p-6 border border-gray-200 rounded-xl sm:rounded-2xl relative shadow-sm" style="font-family: 'Inter', sans-serif;">
-                <!-- Hiasan Garis Robekan -->
+                
                 <div class="absolute inset-y-0 left-0 flex flex-col justify-between py-4 -ml-[5px]">
                     @for ($i = 0; $i < 12; $i++)
                         <span class="w-[10px] h-[10px] bg-white rounded-full border-r border-gray-200"></span>
                     @endfor
                 </div>
 
-                <!-- Kop Kuitansi -->
                 <div class="flex justify-between items-start border-b-2 border-dashed border-gray-200 pb-3 mb-3">
                     <div>
                         <h5 class="text-emerald-700 font-black text-lg sm:text-xl tracking-wider">Bendahara</h5>
@@ -373,7 +354,6 @@
                     </div>
                 </div>
 
-                <!-- Detail Penerima -->
                 <div class="space-y-2 mb-5 text-sm text-gray-700">
                     <div class="flex flex-wrap sm:flex-nowrap gap-1">
                         <span class="w-full sm:w-36 text-[10px] text-gray-400 font-bold uppercase tracking-wider">Telah Diterima Dari</span>
@@ -399,7 +379,6 @@
                     </div>
                 </div>
 
-                <!-- Tanda Tangan -->
                 <div class="flex justify-between items-end border-t border-gray-100 pt-3">
                     <div class="text-[10px] text-gray-400">
                         <div>Tanggal:</div>
@@ -413,7 +392,6 @@
                 </div>
             </div>
 
-            <!-- Tombol Aksi -->
             <div class="grid grid-cols-3 gap-2 sm:gap-3 mt-4 sm:mt-6">
                 <button onclick="downloadPDF()" class="py-2.5 px-2 sm:px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-2 shadow-sm hover:shadow active:scale-95 transition">
                     <i class="fas fa-file-pdf text-sm"></i> <span>Simpan PDF</span>
@@ -595,27 +573,32 @@
         }
     }
 
+    /* INI ADALAH FUNGSI JAVASCRIPT YANG SUDAH DIPERBAIKI (TIDAK AKAN MENYEMPIT) */
     function addPaymentRow(name = '', nominal = 0) {
         const container = document.getElementById('nominal_container');
         const row = document.createElement('div');
         const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
-        row.className = 'grid grid-cols-12 gap-2 sm:gap-3 items-center mt-2';
+        
+        // Memakai Flexbox dengan min-w supaya form tidak hancur ditarik
+        row.className = 'flex flex-row items-center gap-2 w-full mt-2';
         row.innerHTML = `
-            <div class="col-span-5">
+            <div class="w-1/2 sm:w-3/5 shrink-0">
                 <input type="text" name="nama[]" 
-                       class="w-full px-3 py-2 border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:ring-blue-500 focus:border-blue-500" 
-                       placeholder="Contoh: Buku Paket, dll" value="${name}" required>
+                       class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:ring-blue-500 focus:border-blue-500 transition" 
+                       placeholder="Nama Tagihan" value="${name}" required>
             </div>
-            <div class="col-span-6 relative">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm font-bold">Rp</span>
+            
+            <div class="flex-1 relative min-w-[120px]">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm font-bold pointer-events-none">Rp</span>
                 <input type="text" id="target_nominal_visible_${uniqueId}"
-                       class="w-full pl-9 pr-3 py-2 border-gray-200 rounded-lg text-sm text-gray-700 font-semibold focus:ring-blue-500 focus:border-blue-500" 
+                       class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 font-semibold focus:ring-blue-500 focus:border-blue-500 min-w-0 transition" 
                        value="${formatRupiahValue(nominal)}" required oninput="formatRupiah(this, 'target_nominal_hidden_${uniqueId}')">
                 <input type="hidden" name="nominal[]" id="target_nominal_hidden_${uniqueId}" value="${nominal}">
             </div>
-            <div class="col-span-1 text-right">
-                <button type="button" onclick="this.parentElement.parentElement.remove()" class="text-red-500 hover:text-red-700 p-2" title="Hapus baris">
-                    <i class="fas fa-trash"></i>
+            
+            <div class="shrink-0 flex justify-center">
+                <button type="button" onclick="this.parentElement.parentElement.remove()" class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors focus:outline-none" title="Hapus baris">
+                    <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
         `;
@@ -642,7 +625,6 @@
                 }
             });
 
-            // Menangkap event dari Select2 dan meneruskannya ke event listener native
             $('#student_id').on('select2:select', function (e) {
                 studentSelect.dispatchEvent(new Event('change'));
             });
@@ -758,6 +740,9 @@
         const jenisSelect = document.getElementById('jenis_pembayaran');
 
         studentSelect.value = studentId;
+        // Trigger select2 update 
+        $('#student_id').trigger('change');
+
         tagihanSelect.innerHTML = '<option value="">-- Memuat... --</option>';
         tagihanSelect.disabled = true;
         

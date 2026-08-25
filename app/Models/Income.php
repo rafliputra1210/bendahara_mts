@@ -10,6 +10,7 @@ use App\Models\Tagihan; // Menambahkan import manual agar dibaca VS Code
 class Income extends Model
 {
     protected $fillable = [
+        'academic_year_id',
         'student_id', 
         'tagihan_id', // Pastikan kolom ini sudah dimasukkan
         'tanggal', 
@@ -29,5 +30,10 @@ class Income extends Model
     public function tagihan(): BelongsTo
     {
         return $this->belongsTo(Tagihan::class);
+    }
+
+    public function academicYear(): BelongsTo
+    {
+        return $this->belongsTo(AcademicYear::class);
     }
 }

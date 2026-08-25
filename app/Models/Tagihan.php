@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Tagihan extends Model
 {
     protected $fillable = [
+        'academic_year_id',
         'student_id',
         'nama_tagihan',
         'total_tagihan',
@@ -26,5 +27,10 @@ class Tagihan extends Model
     public function incomes(): HasMany
     {
         return $this->hasMany(Income::class);
+    }
+
+    public function academicYear(): BelongsTo
+    {
+        return $this->belongsTo(AcademicYear::class);
     }
 }

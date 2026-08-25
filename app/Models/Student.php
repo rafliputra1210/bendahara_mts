@@ -22,4 +22,9 @@ class Student extends Model
     {
         return $this->hasMany(Tagihan::class);
     }
+    
+    public function user()
+    {
+        return $this->hasOne(User::class);
+    }
 }

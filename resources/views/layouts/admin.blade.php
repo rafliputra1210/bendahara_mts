@@ -57,9 +57,16 @@
             background: rgba(0,0,0,0.5);
             z-index: 29;
             backdrop-filter: blur(2px);
+            cursor: pointer; /* Fix for iOS Safari click event on div */
         }
         .sidebar-overlay.active { display: block; }
         
+        /* Mobile sidebar visibility */
+        @media (max-width: 1023px) {
+            .mobile-sidebar-hidden { transform: translateX(-100%); }
+            .mobile-sidebar-shown { transform: translateX(0); }
+        }
+
         /* Active nav item */
         .nav-active { background-color: rgba(255,255,255,0.15); box-shadow: inset 3px 0 0 #34d399; }
         
@@ -126,7 +133,7 @@
 
         {{-- SIDEBAR --}}
         <aside id="mainSidebar" 
-               class="fixed inset-y-0 left-0 z-30 w-64 bg-emerald-800 text-white flex flex-col shadow-2xl sidebar-transition -translate-x-full lg:relative lg:translate-x-0 lg:shadow-none">
+               class="fixed inset-y-0 left-0 z-30 w-64 bg-emerald-800 text-white flex flex-col shadow-2xl sidebar-transition mobile-sidebar-hidden lg:relative lg:translate-x-0 lg:shadow-none">
             
             {{-- Logo / Brand --}}
             <div class="flex items-center justify-between h-16 bg-emerald-900 px-5 shrink-0">
@@ -136,7 +143,7 @@
                     </div>
                     <span class="text-base font-bold uppercase tracking-wider text-white">BendaharaPro</span>
                 </div>
-                <button onclick="closeSidebar()" class="text-emerald-300 hover:text-white focus:outline-none lg:hidden p-1.5 rounded-lg hover:bg-emerald-700 transition">
+                <button type="button" onclick="closeSidebar()" class="text-emerald-300 hover:text-white focus:outline-none lg:hidden p-1.5 rounded-lg hover:bg-emerald-700 transition">
                     <i class="fas fa-times fa-lg"></i>
                 </button>
             </div>
@@ -229,9 +236,9 @@
 
             {{-- Logout (bottom of sidebar) --}}
             <div class="px-3 py-4 border-t border-emerald-700/50 shrink-0">
-                <form method="POST" action="{{ route('logout') }}">
+                <form method="POST" action="{{ route('logout') }}" id="logout-form-sidebar">
                     @csrf
-                    <button type="submit" 
+                    <button type="button" onclick="confirmLogout('logout-form-sidebar')"
                             class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-emerald-200 hover:text-white hover:bg-red-500/20 transition text-sm font-medium">
                         <i class="fas fa-sign-out-alt w-5 text-center text-red-400"></i>
                         <span>Keluar</span>
@@ -287,9 +294,9 @@
                     </div>
 
                     {{-- Logout (desktop only - sidebar has logout too) --}}
-                    <form method="POST" action="{{ route('logout') }}" class="hidden lg:block">
+                    <form method="POST" action="{{ route('logout') }}" class="hidden lg:block" id="logout-form-header">
                         @csrf
-                        <button type="submit" 
+                        <button type="button" onclick="confirmLogout('logout-form-header')"
                                 class="text-gray-400 hover:text-red-600 transition p-2 rounded-lg hover:bg-red-50" 
                                 title="Logout">
                             <i class="fas fa-sign-out-alt text-lg"></i>
@@ -309,15 +316,15 @@
 
     <script>
         function openSidebar() {
-            document.getElementById('mainSidebar').classList.remove('-translate-x-full');
-            document.getElementById('mainSidebar').classList.add('translate-x-0');
+            document.getElementById('mainSidebar').classList.remove('mobile-sidebar-hidden');
+            document.getElementById('mainSidebar').classList.add('mobile-sidebar-shown');
             document.getElementById('sidebarOverlay').classList.add('active');
             document.body.style.overflow = 'hidden';
         }
 
         function closeSidebar() {
-            document.getElementById('mainSidebar').classList.add('-translate-x-full');
-            document.getElementById('mainSidebar').classList.remove('translate-x-0');
+            document.getElementById('mainSidebar').classList.add('mobile-sidebar-hidden');
+            document.getElementById('mainSidebar').classList.remove('mobile-sidebar-shown');
             document.getElementById('sidebarOverlay').classList.remove('active');
             document.body.style.overflow = '';
         }
@@ -327,6 +334,9 @@
             if (window.innerWidth >= 1024) {
                 document.getElementById('sidebarOverlay').classList.remove('active');
                 document.body.style.overflow = '';
+                // reset mobile specific classes on desktop
+                document.getElementById('mainSidebar').classList.remove('mobile-sidebar-shown');
+                document.getElementById('mainSidebar').classList.add('mobile-sidebar-hidden');
             }
         });
 
@@ -334,6 +344,24 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') closeSidebar();
         });
+
+        // Logout Confirmation
+        function confirmLogout(formId) {
+            Swal.fire({
+                title: 'Konfirmasi Keluar',
+                text: "Apakah Anda yakin ingin keluar dari sistem?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Keluar',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            })
+        }
     </script>
 </body>
 </html>

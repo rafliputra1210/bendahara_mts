@@ -12,35 +12,24 @@
 
     <form method="POST" action="{{ route('login') }}" class="space-y-4">
         @csrf
-
+        
         <!-- Email Address -->
         <div>
-            <label for="email" class="block text-sm font-semibold text-gray-700 mb-1.5">Alamat Email</label>
-            <div class="relative">
-                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
-                    <i class="fas fa-envelope text-sm"></i>
-                </span>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" 
-                       class="w-full pl-10 border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-sm py-2.5" 
-                       required autofocus autocomplete="username" placeholder="bendahara@mts.sch.id">
-            </div>
-            <x-input-error :messages="$errors->get('email')" class="mt-1.5" />
+            <label for="login" class="block font-medium text-sm text-gray-700">Email atau Nama Siswa (Wali)</label>
+            <input id="login" class="block mt-1 w-full border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 rounded-md shadow-sm" type="text" name="login" :value="old('login')" required autofocus autocomplete="username" />
+            <x-input-error :messages="$errors->get('login')" class="mt-2" />
         </div>
 
         <!-- Password -->
-        <div>
-            <label for="password" class="block text-sm font-semibold text-gray-700 mb-1.5">Kata Sandi</label>
-            <div class="relative">
-                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
-                    <i class="fas fa-lock text-sm"></i>
-                </span>
-                <input id="password" type="password" name="password" 
-                       class="w-full pl-10 border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-sm py-2.5" 
-                       required autocomplete="current-password" placeholder="••••••••">
-            </div>
-            <x-input-error :messages="$errors->get('password')" class="mt-1.5" />
+        <div class="mt-4">
+            <label for="password" class="block font-medium text-sm text-gray-700">Kata sandi atau NISN (Wali)</label>
+            <input id="password" class="block mt-1 w-full border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 rounded-md shadow-sm"
+                   type="password"
+                   name="password"
+                   required autocomplete="current-password" />
+            <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
-
+        
         <!-- Remember Me -->
         <div class="flex items-center justify-between">
             <label for="remember_me" class="inline-flex items-center gap-2 cursor-pointer">

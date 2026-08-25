@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\WaliController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -19,12 +20,14 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Middleware untuk Dashboard dan Data Siswa (Digabungkan agar tidak duplikat)
-Route::middleware(['auth', 'verified'])->group(function () {
+// Portal Wali Murid (Khusus Role Wali)
+Route::middleware(['auth', 'verified', 'role:wali'])->group(function () {
+    Route::get('/portal-wali', [WaliController::class, 'dashboard'])->name('wali.dashboard');
+});
+
+// Middleware untuk Dashboard dan Manajemen Keuangan (Khusus Admin, Bendahara, Kepsek)
+Route::middleware(['auth', 'verified', 'role:admin,bendahara,kepsek'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
-    // Route Data Siswa
-    Route::resource('students', StudentController::class);
 
     // Route untuk Kas Masuk
     Route::post('incomes/target-pembayaran', [IncomeController::class, 'updateTargetPembayaran'])->name('incomes.update-target');
@@ -48,7 +51,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route untuk AJAX Tagihan Siswa
     Route::get('/api/tagihan-siswa/{id}', [IncomeController::class, 'getTagihanSiswa']);
     
-    // Route untuk Data Siswa
     // Route untuk Pengaturan Tahun Ajaran & WA
     Route::get('settings/academic-years', [App\Http\Controllers\AcademicYearController::class, 'index'])->name('academic-years.index');
     Route::post('settings/academic-years', [App\Http\Controllers\AcademicYearController::class, 'store'])->name('academic-years.store');
@@ -58,7 +60,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('students/import', [StudentController::class, 'importExcel'])->name('students.import');
     Route::get('students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
     Route::post('students/promote', [StudentController::class, 'promote'])->name('students.promote');
+    Route::post('students/{student}/reset-wali-password', [StudentController::class, 'resetWaliPassword'])->name('students.reset_wali_password');
+    Route::delete('students/destroy-all', [StudentController::class, 'destroyAll'])->name('students.destroy_all');
     Route::resource('students', StudentController::class);
-    });
+});
 
 require __DIR__.'/auth.php';

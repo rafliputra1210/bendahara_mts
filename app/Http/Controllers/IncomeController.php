@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Income;
 use App\Models\Student;
 use App\Models\Tagihan;
+use App\Jobs\SendWhatsappMessageJob;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class IncomeController extends Controller
@@ -87,65 +89,67 @@ class IncomeController extends Controller
         $nominals = $request->input('nominal');
         $count = count($namas);
 
-        // Hapus target kelas yang urutannya melebihi jumlah target baru
-        \App\Models\ClassTarget::where('academic_year_id', $activeYear->id)
-            ->where('kelas', $request->kelas)
-            ->where('urutan', '>', $count)
-            ->delete();
-
-        // Simpan konfigurasi kelas ke DB ClassTarget
-        for ($i = 0; $i < $count; $i++) {
-            $urutan = $i + 1;
-            \App\Models\ClassTarget::updateOrCreate(
-                [
-                    'academic_year_id' => $activeYear->id,
-                    'kelas' => $request->kelas,
-                    'urutan' => $urutan
-                ],
-                [
-                    'nama_tagihan' => $namas[$i],
-                    'nominal' => (float)$nominals[$i]
-                ]
-            );
-        }
-
-        // Buat atau perbarui tagihan untuk semua siswa di kelas ini pada tahun ajaran aktif
-        foreach ($students as $student) {
-            // Hapus tagihan yang urutannya lebih dari jumlah target, hanya jika belum ada pembayaran
-            Tagihan::where('academic_year_id', $activeYear->id)
-                ->where('student_id', $student->id)
+        DB::transaction(function () use ($activeYear, $students, $namas, $nominals, $count, $request) {
+            // Hapus target kelas yang urutannya melebihi jumlah target baru
+            \App\Models\ClassTarget::where('academic_year_id', $activeYear->id)
+                ->where('kelas', $request->kelas)
                 ->where('urutan', '>', $count)
-                ->where('total_dibayar', 0)
                 ->delete();
 
+            // Simpan konfigurasi kelas ke DB ClassTarget
             for ($i = 0; $i < $count; $i++) {
                 $urutan = $i + 1;
-                $nama_tagihan = $namas[$i];
-                $nominal = $nominals[$i];
-
-                $tagihan = Tagihan::query()->updateOrCreate(
+                \App\Models\ClassTarget::updateOrCreate(
                     [
                         'academic_year_id' => $activeYear->id,
-                        'student_id' => $student->id,
-                        'urutan' => $urutan,
+                        'kelas' => $request->kelas,
+                        'urutan' => $urutan
                     ],
                     [
-                        'nama_tagihan' => $nama_tagihan,
-                        'total_tagihan' => $nominal,
+                        'nama_tagihan' => $namas[$i],
+                        'nominal' => (float)$nominals[$i]
                     ]
                 );
-
-                // Update status berdasarkan total_dibayar
-                if ($tagihan->total_dibayar >= $tagihan->total_tagihan) {
-                    $tagihan->status = 'lunas';
-                } elseif ($tagihan->total_dibayar > 0) {
-                    $tagihan->status = 'mencicil';
-                } else {
-                    $tagihan->status = 'belum_bayar';
-                }
-                $tagihan->save();
             }
-        }
+
+            // Buat atau perbarui tagihan untuk semua siswa di kelas ini pada tahun ajaran aktif
+            foreach ($students as $student) {
+                // Hapus tagihan yang urutannya lebih dari jumlah target, hanya jika belum ada pembayaran
+                Tagihan::where('academic_year_id', $activeYear->id)
+                    ->where('student_id', $student->id)
+                    ->where('urutan', '>', $count)
+                    ->where('total_dibayar', 0)
+                    ->delete();
+
+                for ($i = 0; $i < $count; $i++) {
+                    $urutan = $i + 1;
+                    $nama_tagihan = $namas[$i];
+                    $nominal = $nominals[$i];
+
+                    $tagihan = Tagihan::query()->updateOrCreate(
+                        [
+                            'academic_year_id' => $activeYear->id,
+                            'student_id' => $student->id,
+                            'urutan' => $urutan,
+                        ],
+                        [
+                            'nama_tagihan' => $nama_tagihan,
+                            'total_tagihan' => $nominal,
+                        ]
+                    );
+
+                    // Update status berdasarkan total_dibayar
+                    if ($tagihan->total_dibayar >= $tagihan->total_tagihan) {
+                        $tagihan->status = 'lunas';
+                    } elseif ($tagihan->total_dibayar > 0) {
+                        $tagihan->status = 'mencicil';
+                    } else {
+                        $tagihan->status = 'belum_bayar';
+                    }
+                    $tagihan->save();
+                }
+            }
+        });
 
         return redirect()->route('incomes.index', ['kelas' => $request->kelas])->with('success', 'Pengaturan jenis pembayaran kelas ' . $request->kelas . ' berhasil diperbarui!');
     }
@@ -182,43 +186,46 @@ class IncomeController extends Controller
             $validated['academic_year_id'] = $activeYear->id;
         }
 
-        $income = Income::query()->create($validated);
+        $income = null;
+        DB::transaction(function () use ($validated, $request, &$income) {
+            $income = Income::query()->create($validated);
 
-        if ($request->filled('tagihan_id')) {
-            $tagihan = Tagihan::query()->find($request->tagihan_id);
-            
-            if ($tagihan) {
-                $tagihan->total_dibayar += $request->nominal;
-
-                if ($tagihan->total_dibayar >= $tagihan->total_tagihan) {
-                    $tagihan->status = 'lunas';
-                } else {
-                    $tagihan->status = 'mencicil';
-                }
+            if ($request->filled('tagihan_id')) {
+                $tagihan = Tagihan::query()->find($request->tagihan_id);
                 
-                $tagihan->save();
+                if ($tagihan) {
+                    $tagihan->total_dibayar += $request->nominal;
 
-                // Kiri WA Kuitansi Otomatis
-                $student = $tagihan->student;
-                if ($student && $student->no_hp_wali) {
-                    $nom = number_format($request->nominal, 0, ',', '.');
-                    $sisa = number_format($tagihan->total_tagihan - $tagihan->total_dibayar, 0, ',', '.');
-                    $statusTxt = strtoupper($tagihan->status);
+                    if ($tagihan->total_dibayar >= $tagihan->total_tagihan) {
+                        $tagihan->status = 'lunas';
+                    } else {
+                        $tagihan->status = 'mencicil';
+                    }
                     
-                    $pesan = "Halo Bapak/Ibu Wali Murid dari *{$student->nama}*,\n\n";
-                    $pesan .= "Terima kasih, pembayaran *{$tagihan->nama_tagihan}* sebesar *Rp {$nom}* telah kami terima pada tanggal {$request->tanggal}.\n\n";
-                    $pesan .= "Rincian Tagihan:\n";
-                    $pesan .= "- Total Dibayar: Rp " . number_format($tagihan->total_dibayar, 0, ',', '.') . "\n";
-                    $pesan .= "- Sisa Tanggungan: Rp {$sisa}\n";
-                    $pesan .= "- Status: *{$statusTxt}*\n\n";
-                    $pesan .= "Simpan pesan ini sebagai kuitansi digital Anda. Terima kasih.";
+                    $tagihan->save();
 
-                    \App\Services\FonnteService::sendMessage($student->no_hp_wali, $pesan);
+                    // Kirim WA Kuitansi Otomatis (Asinkron via Job Queue)
+                    $student = $tagihan->student;
+                    if ($student && $student->no_hp_wali) {
+                        $nom = number_format($request->nominal, 0, ',', '.');
+                        $sisa = number_format($tagihan->total_tagihan - $tagihan->total_dibayar, 0, ',', '.');
+                        $statusTxt = strtoupper($tagihan->status);
+                        
+                        $pesan = "Halo Bapak/Ibu Wali Murid dari *{$student->nama}*,\n\n";
+                        $pesan .= "Terima kasih, pembayaran *{$tagihan->nama_tagihan}* sebesar *Rp {$nom}* telah kami terima pada tanggal {$request->tanggal}.\n\n";
+                        $pesan .= "Rincian Tagihan:\n";
+                        $pesan .= "- Total Dibayar: Rp " . number_format($tagihan->total_dibayar, 0, ',', '.') . "\n";
+                        $pesan .= "- Sisa Tanggungan: Rp {$sisa}\n";
+                        $pesan .= "- Status: *{$statusTxt}*\n\n";
+                        $pesan .= "Simpan pesan ini sebagai kuitansi digital Anda. Terima kasih.";
+
+                        SendWhatsappMessageJob::dispatch($student->no_hp_wali, $pesan);
+                    }
                 }
             }
-        }
+        });
 
-        return redirect()->route('incomes.index')->with('success', 'Kas masuk berhasil dicatat dan tagihan diperbarui!')->with('show_receipt_id', $income->id);
+        return redirect()->route('incomes.index')->with('success', 'Kas masuk berhasil dicatat dan tagihan diperbarui!')->with('show_receipt_id', $income ? $income->id : null);
     }
 
     public function getTagihanSiswa(string $student_id)

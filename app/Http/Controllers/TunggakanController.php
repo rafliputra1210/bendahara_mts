@@ -6,7 +6,9 @@ use App\Models\Tagihan;
 use App\Models\Student;
 use App\Models\AcademicYear;
 use App\Models\Income;
+use App\Jobs\SendWhatsappMessageJob;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TunggakanController extends Controller
 {
@@ -60,45 +62,47 @@ class TunggakanController extends Controller
         $tagihan = Tagihan::findOrFail($request->tagihan_id);
         $activeYear = AcademicYear::getActive();
 
-        // Buat record Income di tahun aktif saat ini (uang diterima hari ini)
-        Income::create([
-            'academic_year_id' => $activeYear ? $activeYear->id : null,
-            'student_id' => $tagihan->student_id,
-            'tagihan_id' => $tagihan->id,
-            'tanggal' => date('Y-m-d'),
-            'jenis_pembayaran' => 'Pelunasan Tunggakan: ' . $tagihan->nama_tagihan . ' (' . ($tagihan->academicYear ? $tagihan->academicYear->name : 'Tahun Lama') . ')',
-            'nominal' => $request->nominal,
-            'keterangan' => $request->keterangan
-        ]);
+        DB::transaction(function () use ($request, $tagihan, $activeYear) {
+            // Buat record Income di tahun aktif saat ini (uang diterima hari ini)
+            Income::create([
+                'academic_year_id' => $activeYear ? $activeYear->id : null,
+                'student_id' => $tagihan->student_id,
+                'tagihan_id' => $tagihan->id,
+                'tanggal' => date('Y-m-d'),
+                'jenis_pembayaran' => 'Pelunasan Tunggakan: ' . $tagihan->nama_tagihan . ' (' . ($tagihan->academicYear ? $tagihan->academicYear->name : 'Tahun Lama') . ')',
+                'nominal' => $request->nominal,
+                'keterangan' => $request->keterangan
+            ]);
 
-        // Update nominal dibayar pada tagihan
-        $tagihan->total_dibayar += $request->nominal;
-        
-        if ($tagihan->total_dibayar >= $tagihan->total_tagihan) {
-            $tagihan->status = 'lunas';
-        } else {
-            $tagihan->status = 'mencicil';
-        }
-        $tagihan->save();
-
-        // Kiri WA Kuitansi Otomatis
-        $student = $tagihan->student;
-        if ($student && $student->no_hp_wali) {
-            $nom = number_format($request->nominal, 0, ',', '.');
-            $sisa = number_format($tagihan->total_tagihan - $tagihan->total_dibayar, 0, ',', '.');
-            $statusTxt = strtoupper($tagihan->status);
-            $tahunLama = $tagihan->academicYear ? $tagihan->academicYear->name : 'Tahun Lama';
+            // Update nominal dibayar pada tagihan
+            $tagihan->total_dibayar += $request->nominal;
             
-            $pesan = "Halo Bapak/Ibu Wali Murid dari *{$student->nama}*,\n\n";
-            $pesan .= "Terima kasih, pembayaran TUNGGAKAN *{$tagihan->nama_tagihan}* (TA: {$tahunLama}) sebesar *Rp {$nom}* telah kami terima.\n\n";
-            $pesan .= "Rincian Tagihan:\n";
-            $pesan .= "- Total Dibayar: Rp " . number_format($tagihan->total_dibayar, 0, ',', '.') . "\n";
-            $pesan .= "- Sisa Tanggungan: Rp {$sisa}\n";
-            $pesan .= "- Status: *{$statusTxt}*\n\n";
-            $pesan .= "Simpan pesan ini sebagai kuitansi digital Anda. Terima kasih.";
+            if ($tagihan->total_dibayar >= $tagihan->total_tagihan) {
+                $tagihan->status = 'lunas';
+            } else {
+                $tagihan->status = 'mencicil';
+            }
+            $tagihan->save();
 
-            \App\Services\FonnteService::sendMessage($student->no_hp_wali, $pesan);
-        }
+            // Kirim WA Kuitansi Otomatis (Asinkron)
+            $student = $tagihan->student;
+            if ($student && $student->no_hp_wali) {
+                $nom = number_format($request->nominal, 0, ',', '.');
+                $sisa = number_format($tagihan->total_tagihan - $tagihan->total_dibayar, 0, ',', '.');
+                $statusTxt = strtoupper($tagihan->status);
+                $tahunLama = $tagihan->academicYear ? $tagihan->academicYear->name : 'Tahun Lama';
+                
+                $pesan = "Halo Bapak/Ibu Wali Murid dari *{$student->nama}*,\n\n";
+                $pesan .= "Terima kasih, pembayaran TUNGGAKAN *{$tagihan->nama_tagihan}* (TA: {$tahunLama}) sebesar *Rp {$nom}* telah kami terima.\n\n";
+                $pesan .= "Rincian Tagihan:\n";
+                $pesan .= "- Total Dibayar: Rp " . number_format($tagihan->total_dibayar, 0, ',', '.') . "\n";
+                $pesan .= "- Sisa Tanggungan: Rp {$sisa}\n";
+                $pesan .= "- Status: *{$statusTxt}*\n\n";
+                $pesan .= "Simpan pesan ini sebagai kuitansi digital Anda. Terima kasih.";
+
+                SendWhatsappMessageJob::dispatch($student->no_hp_wali, $pesan);
+            }
+        });
 
         return redirect()->back()->with('success', 'Pembayaran tunggakan berhasil dicatat!');
     }
@@ -142,10 +146,10 @@ class TunggakanController extends Controller
             $pesan .= "Total Tunggakan: *Rp " . number_format($data['total'], 0, ',', '.') . "*\n\n";
             $pesan .= "Mohon untuk dapat segera diselesaikan. Apabila sudah melakukan pembayaran, mohon abaikan pesan ini. Terima kasih.";
 
-            \App\Services\FonnteService::sendMessage($data['hp'], $pesan);
+            SendWhatsappMessageJob::dispatch($data['hp'], $pesan);
             $sentCount++;
         }
 
-        return redirect()->back()->with('success', "Pesan peringatan berhasil dikirim ke {$sentCount} wali murid!");
+        return redirect()->back()->with('success', "Pesan peringatan berhasil masuk antrean untuk {$sentCount} wali murid!");
     }
 }
