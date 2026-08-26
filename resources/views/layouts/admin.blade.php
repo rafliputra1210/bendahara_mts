@@ -202,7 +202,7 @@
                 <a href="{{ route('incomes.history') }}" 
                    class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 transition text-sm font-medium {{ request()->routeIs('incomes.history') ? 'nav-active bg-white/10' : 'text-emerald-100' }}">
                     <i class="fas fa-history w-5 text-center text-blue-300"></i>
-                    <span>Riwayat Kas Masuk</span>
+                    <span>Riwayat Transaksi</span>
                 </a>
                 
                 <a href="{{ route('tunggakan.index') }}" 

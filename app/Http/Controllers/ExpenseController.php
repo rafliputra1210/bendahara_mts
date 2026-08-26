@@ -58,6 +58,6 @@ class ExpenseController extends Controller
         // Ganti menjadi:
         Expense::destroy($expense->id);
         
-        return redirect()->route('expenses.index')->with('success', 'Data pengeluaran berhasil dihapus!');
+        return redirect()->back()->with('success', 'Data pengeluaran berhasil dihapus!');
     }
 }

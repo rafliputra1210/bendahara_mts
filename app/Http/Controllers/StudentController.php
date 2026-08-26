@@ -166,24 +166,83 @@ class StudentController extends Controller
     public function importExcel(Request $request)
     {
         $request->validate([
-            'file_excel' => 'required|mimes:xlsx,xls,csv|max:2048'
+            'file_excel' => 'required|file|max:5120'
         ], [
-            'file_excel.required' => 'Pilih file Excel terlebih dahulu!',
-            'file_excel.mimes' => 'Format file harus berupa .xlsx, .xls, atau .csv',
+            'file_excel.required' => 'Pilih file Excel / CSV terlebih dahulu!',
         ]);
 
-        try {
-            Excel::import(new StudentsImport, $request->file('file_excel'));
-            return redirect()->route('students.index')->with('success', 'Ribuan data siswa berhasil diimpor!');
-        } catch (\Exception $e) {
-            return redirect()->route('students.index')->with('error', 'Gagal impor data. Pastikan format Excel sesuai. Error: ' . $e->getMessage());
+        $file = $request->file('file_excel');
+        $extension = strtolower($file->getClientOriginalExtension());
+        if (!in_array($extension, ['xlsx', 'xls', 'csv', 'txt'])) {
+            return redirect()->back()->with('error', 'Format file harus berupa .xlsx, .xls, atau .csv');
         }
+
+        try {
+            $delimiter = ';';
+            if (in_array($extension, ['csv', 'txt'])) {
+                $delimiter = $this->detectCsvDelimiter($file->getRealPath());
+            }
+
+            $import = new StudentsImport($delimiter);
+            Excel::import($import, $file);
+
+            $msg = [];
+            if ($import->createdCount > 0) {
+                $msg[] = "{$import->createdCount} data siswa baru ditambahkan";
+            }
+            if ($import->updatedCount > 0) {
+                $msg[] = "{$import->updatedCount} data siswa diperbarui";
+            }
+
+            if (empty($msg)) {
+                return redirect()->route('students.index')->with('warning', 'Tidak ada data siswa baru atau perubahan yang diimpor. Pastikan file sesuai template.');
+            }
+
+            return redirect()->route('students.index')->with('success', 'Berhasil mengimpor data siswa: ' . implode(', ', $msg) . '.');
+        } catch (\Exception $e) {
+            return redirect()->route('students.index')->with('error', 'Gagal impor data. ' . $e->getMessage());
+        }
+    }
+
+    private function detectCsvDelimiter(string $filePath): string
+    {
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            return ';';
+        }
+
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            return ';';
+        }
+
+        $firstLine = fgets($handle);
+        fclose($handle);
+
+        if (!$firstLine) {
+            return ';';
+        }
+
+        $semicolons = substr_count($firstLine, ';');
+        $commas = substr_count($firstLine, ',');
+        $tabs = substr_count($firstLine, "\t");
+
+        if ($semicolons > $commas && $semicolons > $tabs) {
+            return ';';
+        }
+        if ($commas > $semicolons && $commas > $tabs) {
+            return ',';
+        }
+        if ($tabs > $semicolons && $tabs > $commas) {
+            return "\t";
+        }
+
+        return ';';
     }
 
     public function downloadTemplate()
     {
         $headers = [
-            "Content-type"        => "text/csv",
+            "Content-type"        => "text/csv; charset=UTF-8",
             "Content-Disposition" => "attachment; filename=template_import_siswa.csv",
             "Pragma"              => "no-cache",
             "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
@@ -194,11 +253,16 @@ class StudentController extends Controller
 
         $callback = function() use($columns) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, $columns);
+
+            // Header BOM UTF-8 agar Excel membaca karakter khusus & format kolom dengan benar
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Gunakan titik koma (;) sebagai delimiter agar otomatis terpisah per-kolom di Excel Windows/Locale Indo
+            fputcsv($file, $columns, ';');
             
-            // Berikan satu baris contoh
-            fputcsv($file, ['123456', 'Ahmad Fauzi', '10A', 'L', 'Jl. Sudirman No 1', '081234567890', 'aktif']);
-            fputcsv($file, ['123457', 'Siti Aminah', '10B', 'P', 'Jl. Merdeka No 2', '089876543210', 'aktif']);
+            // Baris contoh
+            fputcsv($file, ['250101', 'AHMAD EVAN AFANDI', '7', 'laki', 'malang', '08523456789', 'aktif'], ';');
+            fputcsv($file, ['250102', 'CHOIRUL MUHAMMAD ILYAS', '7', 'laki', 'malang', '08523456790', 'aktif'], ';');
 
             fclose($file);
         };

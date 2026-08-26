@@ -5,35 +5,81 @@ namespace App\Imports;
 use App\Models\Student;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
 
-class StudentsImport implements ToModel, WithHeadingRow
+class StudentsImport implements ToModel, WithHeadingRow, WithCustomCsvSettings
 {
+    public int $createdCount = 0;
+    public int $updatedCount = 0;
+    protected string $delimiter;
+
+    public function __construct(string $delimiter = ';')
+    {
+        $this->delimiter = $delimiter;
+    }
+
+    public function getCsvSettings(): array
+    {
+        return [
+            'delimiter' => $this->delimiter,
+        ];
+    }
+
     public function model(array $row)
     {
-        // Abaikan baris kosong
-        if (!isset($row['nis']) && !isset($row['nama'])) {
+        // Normalisasi key array: hapus spasi tambahan & ubah ke huruf kecil
+        $normalized = [];
+        foreach ($row as $key => $value) {
+            $cleanKey = strtolower(trim((string)$key));
+            $normalized[$cleanKey] = is_string($value) ? trim($value) : $value;
+        }
+
+        // Fleksibilitas pencarian kolom header
+        $nis = $normalized['nis'] ?? $normalized['no_nis'] ?? $normalized['nomor_induk'] ?? null;
+        $nama = $normalized['nama'] ?? $normalized['nama_siswa'] ?? $normalized['nama_lengkap'] ?? null;
+
+        // Abaikan jika baris kosong (misal: ;;;;;;)
+        if (empty($nis) && empty($nama)) {
             return null;
         }
 
-        // Jika tidak ada kolom nis tapi ada data lain, berarti format tidak sesuai
-        if (!isset($row['nis'])) {
-            throw new \Exception("Kolom 'nis' tidak ditemukan di baris data. Pastikan format kolom (header) sesuai template (huruf kecil semua: nis, nama, kelas, dst).");
+        if (empty($nis)) {
+            throw new \Exception("Kolom 'nis' wajib diisi pada setiap baris data.");
         }
 
-        // Cek duplikasi
-        if (Student::query()->where('nis', $row['nis'])->exists()) {
-            // Bisa dilewati atau throw exception, kita lewati saja tapi jika semua dilewati tidak ada yang bertambah
-            return null; 
+        // Format NIS ke string bersih (menghindari format ilmiah/float dari Excel)
+        $nisStr = (string)$nis;
+        if (str_contains($nisStr, '.')) {
+            $nisStr = explode('.', $nisStr)[0];
+        }
+        $nisStr = trim($nisStr);
+
+        // Format Jenis Kelamin
+        $jkRaw = strtolower((string)($normalized['jenis_kelamin'] ?? $normalized['jk'] ?? 'L'));
+        $jenisKelamin = 'L';
+        if (in_array($jkRaw, ['p', 'perempuan', 'wanita', 'female'])) {
+            $jenisKelamin = 'P';
         }
 
-        return new Student([
-            'nis'           => $row['nis'],
-            'nama'          => $row['nama'] ?? '-',
-            'kelas'         => $row['kelas'] ?? '-',
-            'jenis_kelamin' => isset($row['jenis_kelamin']) ? strtoupper(substr($row['jenis_kelamin'], 0, 1)) : 'L',
-            'alamat'        => $row['alamat'] ?? null,
-            'no_hp_wali'    => $row['no_hp_wali'] ?? null,
-            'status'        => $row['status'] ?? 'aktif',
-        ]);
+        $studentData = [
+            'nis'           => $nisStr,
+            'nama'          => !empty($nama) ? $nama : '-',
+            'kelas'         => !empty($normalized['kelas']) ? (string)$normalized['kelas'] : '-',
+            'jenis_kelamin' => $jenisKelamin,
+            'alamat'        => !empty($normalized['alamat']) ? $normalized['alamat'] : null,
+            'no_hp_wali'    => !empty($normalized['no_hp_wali']) ? (string)$normalized['no_hp_wali'] : (!empty($normalized['no_hp']) ? (string)$normalized['no_hp'] : null),
+            'status'        => !empty($normalized['status']) ? strtolower((string)$normalized['status']) : 'aktif',
+        ];
+
+        // Jika siswa dengan NIS ini sudah ada, perbarui datanya. Jika belum, buat baru.
+        $existingStudent = Student::where('nis', $nisStr)->first();
+        if ($existingStudent) {
+            $existingStudent->update($studentData);
+            $this->updatedCount++;
+            return null;
+        }
+
+        $this->createdCount++;
+        return new Student($studentData);
     }
 }

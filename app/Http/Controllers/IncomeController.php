@@ -246,25 +246,85 @@ class IncomeController extends Controller
     public function history(Request $request)
     {
         $activeYear = \App\Models\AcademicYear::getActive();
-        $query = Income::query()->with(['student', 'tagihan']);
-        
-        if ($activeYear) {
-            $query->where('academic_year_id', $activeYear->id);
-        }
+        $type = $request->query('type', 'all'); // 'all', 'income', 'expense'
+        $search = trim($request->query('search', ''));
 
-        $query->latest('tanggal');
-        
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->whereHas('student', function($q) use ($search) {
-                $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('nis', 'like', "%{$search}%");
+        // Query Incomes
+        $incomeQuery = Income::query()->with(['student', 'tagihan']);
+        if ($activeYear) {
+            $incomeQuery->where('academic_year_id', $activeYear->id);
+        }
+        if ($search !== '') {
+            $incomeQuery->where(function($q) use ($search) {
+                $q->where('jenis_pembayaran', 'like', "%{$search}%")
+                  ->orWhere('keterangan', 'like', "%{$search}%")
+                  ->orWhereHas('student', function($sq) use ($search) {
+                      $sq->where('nama', 'like', "%{$search}%")
+                        ->orWhere('nis', 'like', "%{$search}%");
+                  });
             });
         }
-        
-        $incomes = $query->paginate(15);
-        
-        return view('incomes.history', compact('incomes'));
+
+        // Query Expenses
+        $expenseQuery = \App\Models\Expense::query();
+        if ($activeYear) {
+            $expenseQuery->where('academic_year_id', $activeYear->id);
+        }
+        if ($search !== '') {
+            $expenseQuery->where(function($q) use ($search) {
+                $q->where('kategori', 'like', "%{$search}%")
+                  ->orWhere('keterangan', 'like', "%{$search}%");
+            });
+        }
+
+        // Ringkasan Keuangan
+        $totalIncome = (clone $incomeQuery)->sum('nominal');
+        $totalExpense = (clone $expenseQuery)->sum('nominal');
+        $netBalance = $totalIncome - $totalExpense;
+
+        $items = collect();
+
+        if ($type === 'income') {
+            $items = $incomeQuery->latest('tanggal')->latest('id')->get()->map(function($item) {
+                $item->transaction_type = 'income';
+                return $item;
+            });
+        } elseif ($type === 'expense') {
+            $items = $expenseQuery->latest('tanggal')->latest('id')->get()->map(function($item) {
+                $item->transaction_type = 'expense';
+                return $item;
+            });
+        } else {
+            $incomes = $incomeQuery->latest('tanggal')->latest('id')->get()->map(function($item) {
+                $item->transaction_type = 'income';
+                return $item;
+            });
+            $expenses = $expenseQuery->latest('tanggal')->latest('id')->get()->map(function($item) {
+                $item->transaction_type = 'expense';
+                return $item;
+            });
+
+            $items = $incomes->concat($expenses)->sort(function($a, $b) {
+                if ($a->tanggal === $b->tanggal) {
+                    return $b->id <=> $a->id;
+                }
+                return strtotime($b->tanggal) <=> strtotime($a->tanggal);
+            })->values();
+        }
+
+        $perPage = 15;
+        $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+        $currentPageItems = $items->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        $transactions = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentPageItems,
+            $items->count(),
+            $perPage,
+            $currentPage,
+            ['path' => \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
+
+        return view('incomes.history', compact('transactions', 'type', 'search', 'totalIncome', 'totalExpense', 'netBalance'));
     }
 
     public function destroy(Income $income)

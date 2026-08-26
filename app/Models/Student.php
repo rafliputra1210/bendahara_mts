@@ -27,4 +27,19 @@ class Student extends Model
     {
         return $this->hasOne(User::class);
     }
+
+    protected static function booted(): void
+    {
+        static::saved(function (Student $student) {
+            User::firstOrCreate(
+                ['student_id' => $student->id],
+                [
+                    'name'     => $student->nama,
+                    'email'    => $student->nis . '@wali.com',
+                    'password' => \Illuminate\Support\Facades\Hash::make($student->nis),
+                    'role'     => 'wali',
+                ]
+            );
+        });
+    }
 }
