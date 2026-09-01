@@ -11,9 +11,17 @@ class AcademicYear extends Model
 
     public static function getActive()
     {
-        return Cache::remember('active_academic_year', 3600, function () {
+        $cached = Cache::remember('active_academic_year', 3600, function () {
             return self::where('is_active', true)->first();
         });
+
+        // Cegah error __PHP_Incomplete_Class jika cache serialisasi korup/stale pasca-deploy
+        if ($cached !== null && !($cached instanceof self)) {
+            self::clearActiveCache();
+            return self::where('is_active', true)->first();
+        }
+
+        return $cached;
     }
 
     public static function clearActiveCache(): void

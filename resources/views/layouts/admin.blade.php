@@ -282,7 +282,6 @@
                             </div>
                         @endif
                     </div>
-                </div>
                 
                 {{-- Right: User Info + Logout --}}
                 <div class="flex items-center gap-2 sm:gap-3 shrink-0">
