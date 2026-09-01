@@ -46,7 +46,9 @@ Route::middleware(['auth', 'verified', 'role:admin,bendahara,kepsek'])->group(fu
     // Route untuk Tunggakan
     Route::get('tunggakan', [App\Http\Controllers\TunggakanController::class, 'index'])->name('tunggakan.index');
     Route::post('tunggakan/bayar', [App\Http\Controllers\TunggakanController::class, 'store'])->name('tunggakan.store');
-    Route::post('tunggakan/broadcast', [App\Http\Controllers\TunggakanController::class, 'broadcast'])->name('tunggakan.broadcast');
+    Route::post('tunggakan/broadcast', [App\Http\Controllers\TunggakanController::class, 'broadcast'])
+        ->middleware('throttle:10,1')
+        ->name('tunggakan.broadcast');
 
     // Route untuk AJAX Tagihan Siswa
     Route::get('/api/tagihan-siswa/{id}', [IncomeController::class, 'getTagihanSiswa']);
@@ -60,7 +62,9 @@ Route::middleware(['auth', 'verified', 'role:admin,bendahara,kepsek'])->group(fu
     Route::post('students/import', [StudentController::class, 'importExcel'])->name('students.import');
     Route::get('students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
     Route::post('students/promote', [StudentController::class, 'promote'])->name('students.promote');
-    Route::post('students/{student}/reset-wali-password', [StudentController::class, 'resetWaliPassword'])->name('students.reset_wali_password');
+    Route::post('students/{student}/reset-wali-password', [StudentController::class, 'resetWaliPassword'])
+        ->middleware('throttle:20,1')
+        ->name('students.reset_wali_password');
     Route::delete('students/destroy-all', [StudentController::class, 'destroyAll'])->name('students.destroy_all');
     Route::resource('students', StudentController::class);
 });

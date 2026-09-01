@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sistem Bendahara</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/LOGO MTS.png') }}">
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -137,11 +138,14 @@
             
             {{-- Logo / Brand --}}
             <div class="flex items-center justify-between h-16 bg-emerald-900 px-5 shrink-0">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 bg-emerald-400 rounded-lg flex items-center justify-center shadow-inner">
-                        <i class="fas fa-coins text-emerald-900 text-sm"></i>
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 bg-white rounded-xl flex items-center justify-center p-1 shadow-sm shrink-0">
+                        <img src="{{ asset('images/LOGO MTS.png') }}" alt="Logo MTs" class="w-full h-full object-contain">
                     </div>
-                    <span class="text-base font-bold uppercase tracking-wider text-white">BendaharaPro</span>
+                    <div class="min-w-0">
+                        <span class="text-sm font-bold uppercase tracking-wider text-white block leading-tight">BendaharaPro</span>
+                        <span class="text-[10px] text-emerald-300 font-medium block truncate">MTs Miftahul Ulum</span>
+                    </div>
                 </div>
                 <button type="button" onclick="closeSidebar()" class="text-emerald-300 hover:text-white focus:outline-none lg:hidden p-1.5 rounded-lg hover:bg-emerald-700 transition">
                     <i class="fas fa-times fa-lg"></i>
@@ -259,13 +263,15 @@
                             class="lg:hidden text-gray-500 hover:text-emerald-600 focus:outline-none p-2 rounded-lg hover:bg-gray-100 transition shrink-0">
                         <i class="fas fa-bars text-lg"></i>
                     </button>
-                    <div class="min-w-0 flex items-center gap-3">
+                    <div class="min-w-0 flex items-center gap-2.5">
+                        <img src="{{ asset('images/LOGO MTS.png') }}" alt="Logo MTs" class="w-8 h-8 object-contain lg:hidden shrink-0">
                         <div>
                             <h1 class="text-base sm:text-lg font-bold text-gray-800 truncate">
                                 @yield('header_title', 'Sistem Keuangan')
                             </h1>
                             <p class="text-[10px] text-gray-400 hidden sm:block">MTs Miftahul Ulum Dampit</p>
                         </div>
+                    </div>
                         @php
                             $activeYear = \App\Models\AcademicYear::getActive();
                         @endphp

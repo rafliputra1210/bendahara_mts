@@ -57,6 +57,9 @@ class AcademicYearController extends Controller
         // Activate selected
         $academicYear->update(['is_active' => true]);
 
+        // Bersihkan cache
+        AcademicYear::clearActiveCache();
+
         return redirect()->back()->with('success', "Tahun Ajaran {$academicYear->name} sekarang aktif.");
     }
 

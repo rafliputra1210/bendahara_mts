@@ -21,12 +21,23 @@
         </div>
 
         <!-- Password -->
-        <div class="mt-4">
+        <div class="mt-4" x-data="{ showPassword: false }">
             <label for="password" class="block font-medium text-sm text-gray-700">Kata sandi atau NISN (Wali)</label>
-            <input id="password" class="block mt-1 w-full border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 rounded-md shadow-sm"
-                   type="password"
-                   name="password"
-                   required autocomplete="current-password" />
+            <div class="relative mt-1">
+                <input id="password" 
+                       class="block w-full pr-10 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 rounded-md shadow-sm"
+                       :type="showPassword ? 'text' : 'password'"
+                       type="password"
+                       name="password"
+                       required autocomplete="current-password" />
+                <button type="button" 
+                        @click="showPassword = !showPassword" 
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-emerald-600 focus:outline-none transition-colors"
+                        title="Tampilkan / Sembunyikan Kata Sandi"
+                        tabindex="-1">
+                    <i class="fas text-sm" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+                </button>
+            </div>
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
         

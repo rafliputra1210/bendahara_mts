@@ -18,8 +18,11 @@ class StudentController extends Controller
 
         // Fitur Pencarian berdasarkan Nama atau NIS
         if ($request->filled('search')) {
-            $query->where('nama', 'like', '%' . $request->search . '%')
-                  ->orWhere('nis', 'like', '%' . $request->search . '%');
+            $search = addcslashes($request->search, '%_');
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', '%' . $search . '%')
+                  ->orWhere('nis', 'like', '%' . $search . '%');
+            });
         }
 
         // Fitur Filter berdasarkan Status

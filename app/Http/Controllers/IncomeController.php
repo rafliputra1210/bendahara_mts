@@ -247,7 +247,8 @@ class IncomeController extends Controller
     {
         $activeYear = \App\Models\AcademicYear::getActive();
         $type = $request->query('type', 'all'); // 'all', 'income', 'expense'
-        $search = trim($request->query('search', ''));
+        $rawSearch = trim($request->query('search', ''));
+        $search = addcslashes($rawSearch, '%_');
 
         // Query Incomes
         $incomeQuery = Income::query()->with(['student', 'tagihan']);

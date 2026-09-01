@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>{{ config('app.name', 'BendaharaPro') }} - Login</title>
+        <link rel="icon" type="image/png" href="{{ asset('images/LOGO MTS.png') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -28,8 +29,8 @@
                 </div>
                 
                 <div class="relative z-10 text-white max-w-md text-center">
-                    <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl backdrop-blur-sm">
-                        <i class="fas fa-coins text-white text-3xl"></i>
+                    <div class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl p-2.5 backdrop-blur-sm">
+                        <img src="{{ asset('images/LOGO MTS.png') }}" alt="Logo MTs" class="w-full h-full object-contain">
                     </div>
                     <h1 class="text-3xl font-black mb-3 tracking-tight">BendaharaPro</h1>
                     <p class="text-emerald-100 text-lg font-medium mb-2">Sistem Keuangan MTs Miftahul Ulum</p>
@@ -59,8 +60,8 @@
                 
                 {{-- Mobile logo --}}
                 <div class="lg:hidden text-center mb-8">
-                    <div class="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <i class="fas fa-coins text-white text-2xl"></i>
+                    <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md border border-gray-100 p-2">
+                        <img src="{{ asset('images/LOGO MTS.png') }}" alt="Logo MTs" class="w-full h-full object-contain">
                     </div>
                     <h1 class="text-2xl font-black text-gray-900">BendaharaPro</h1>
                     <p class="text-gray-500 text-sm mt-1">MTs Miftahul Ulum Dampit</p>

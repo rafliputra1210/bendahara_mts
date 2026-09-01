@@ -10,6 +10,10 @@ class WaliController extends Controller
     {
         // Ambil data siswa yang terhubung dengan akun wali yang sedang login
         $student = Auth::user()->student; 
+
+        if (!$student) {
+            abort(404, 'Data siswa untuk akun wali ini tidak ditemukan.');
+        }
         
         // Ambil riwayat pembayaran (kas masuk) terbaru
         $incomes = $student->incomes()->latest('tanggal')->get();
